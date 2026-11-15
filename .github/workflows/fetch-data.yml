@@ -1,0 +1,31 @@
+name: fetch-data
+on:
+  push:
+    paths: ['.github/workflows/fetch-data.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download open data
+        run: |
+          set -x
+          mkdir -p data/raw
+          IA=https://data.insideairbnb.com/united-states/ny/new-york-city/2026-09-14
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
+          curl -fsSL -A "$UA" -o data/raw/insideairbnb_nyc_2026-09-14_listings_detailed.csv.gz $IA/data/listings.csv.gz || echo FAIL1
+          curl -fsSL -A "$UA" -o data/raw/insideairbnb_nyc_2026-09-14_listings_summary.csv $IA/visualisations/listings.csv || echo FAIL2
+          curl -fsSL -A "$UA" -o data/raw/insideairbnb_nyc_2026-09-14_neighbourhoods.csv $IA/visualisations/neighbourhoods.csv || echo FAIL3
+          curl -fsSL -A "$UA" -o data/raw/insideairbnb_nyc_2026-09-14_neighbourhoods.geojson $IA/visualisations/neighbourhoods.geojson || echo FAIL4
+          curl -fsSL -A "$UA" -o data/raw/nyc_ose_str_registrations_2026-11-02.xlsx https://www.nyc.gov/assets/specialenforcement/downloads/excel/ose-str-registration-dataset-2026-11-02.xlsx || echo FAIL5
+          ls -la data/raw
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add data/raw
+          git commit -m "Данные: Inside Airbnb NYC 2026-09-14 + NYC OSE регистрации 2026-11-02" || echo nothing
+          git push
